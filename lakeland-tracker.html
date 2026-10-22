@@ -376,7 +376,7 @@ function normalizeType(type) {
 // Dark text on the gold badge so it stays readable; white text on the rest.
 function badgeText(color) { return color === STATUS_COLORS.construction ? '#1C2624' : '#fff'; }
 function pinHtml(color) {
-  return `<svg width="16" height="29" viewBox="0 0 20 36" style="display:block;overflow:visible;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.45));"><path d="M10 1.5C5 1.5 1.5 5.3 1.5 10.5c0 7.2 8.5 24 8.5 24s8.5-16.8 8.5-24C18.5 5.3 15 1.5 10 1.5z" fill="${color}" stroke="#fff" stroke-width="2.5"/></svg>`;
+  return `<svg width="20" height="36" viewBox="0 0 20 36" style="display:block;overflow:visible;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.45));"><path d="M10 1.5C5 1.5 1.5 5.3 1.5 10.5c0 7.2 8.5 24 8.5 24s8.5-16.8 8.5-24C18.5 5.3 15 1.5 10 1.5z" fill="${color}" stroke="#fff" stroke-width="2.5"/></svg>`;
 }
 
 let allProjects = [];
@@ -554,9 +554,9 @@ function render() {
     const icon = L.divIcon({
       className: '',
       html: pinHtml(color),
-      iconSize: [16, 29],
-      iconAnchor: [8, 29],
-      popupAnchor: [0, -27]
+      iconSize: [20, 36],
+      iconAnchor: [10, 36],
+      popupAnchor: [0, -34]
     });
     const marker = L.marker([p.lat, p.lng], { icon, draggable: EDIT_MODE }).addTo(markersLayer);
     if (EDIT_MODE) {
