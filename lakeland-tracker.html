@@ -205,6 +205,8 @@
   .popup-meta { font-size: 0.78rem; color: #555; line-height: 1.6; }
   .popup-meta strong { color: var(--ink); }
   .popup-link { font-size: 0.8rem; color: var(--ledc-teal-dark); font-weight: 600; text-decoration: none; }
+  .popup-contact { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 0.8rem; color: #555; line-height: 1.5; }
+  .popup-contact a { color: var(--ledc-teal-dark); font-weight: 600; text-decoration: none; white-space: nowrap; }
 
   .empty-note {
     padding: 40px 16px;
@@ -584,6 +586,7 @@ function render() {
         ${metaLines(p)}
       </div>
       ${p.source ? `<a class="popup-link" href="${p.source}" target="_blank">More information →</a>` : ''}
+      ${statusStage(p.status) === 'opportunity' ? `<div class="popup-contact">Contact Laura Taylor at <a href="tel:+18636873788">863-687-3788</a> or <a href="mailto:ltaylor@lakelandedc.com">ltaylor@lakelandedc.com</a> for more information.</div>` : ''}
       ${EDIT_MODE ? `<div class="popup-coords">${p.address || ''}</div>` : ''}
       ${filtered.length > 1 ? `<div class="popup-nav">
         <button type="button" data-step="-1">&lsaquo; Previous</button>
