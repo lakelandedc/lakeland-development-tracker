@@ -603,7 +603,8 @@ function render() {
 function metaLines(p) {
   const fields = [
     ['Developer', p.developer], ['Construction', p.construction],
-    ['Investment', p.investment], ['Units', p.units], ['Jobs', p.jobs], ['Size', p.sqft]
+    ['Investment', p.investment], ['Units', p.units], ['Jobs', p.jobs], ['Size', p.sqft],
+    ['Owner', p.owner], ['Ownership', p.ownership], ['Current Use', p.currentUse]
   ];
   return fields
     .filter(([k, v]) => v && String(v).trim() && !/^(n\/?a|-+)$/i.test(String(v).trim())
@@ -676,7 +677,8 @@ if (SHEET_CSV_URL) {
         .map(r => ({
           name: r.name, address: r.address, lat: parseFloat(r.lat), lng: parseFloat(r.lng),
           status: normalizeStatus(r.status), type: normalizeType(r.type), description: r.description, developer: r.developer,
-          construction: r.construction, investment: r.investment, units: r.units, jobs: r.jobs, sqft: r.sqft, source: r.source, photo: r.photo
+          construction: r.construction, investment: r.investment, units: r.units, jobs: r.jobs, sqft: r.sqft, source: r.source, photo: r.photo,
+          owner: r.owner, ownership: r.ownership, currentUse: r.current_use
         }));
       init(rows);
     },
