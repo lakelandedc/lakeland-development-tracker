@@ -587,7 +587,6 @@ function render() {
       </div>
       ${p.source ? `<a class="popup-link" href="${p.source}" target="_blank">More information →</a>` : ''}
       ${statusStage(p.status) === 'opportunity' ? `<div class="popup-contact">Contact Laura Taylor at <a href="tel:+18636873788">863-687-3788</a> or <a href="mailto:ltaylor@lakelandedc.com">ltaylor@lakelandedc.com</a> for more information.</div>` : ''}
-      ${EDIT_MODE ? `<div class="popup-coords">${p.address || ''}</div>` : ''}
       ${filtered.length > 1 ? `<div class="popup-nav">
         <button type="button" data-step="-1">&lsaquo; Previous</button>
         <span>${i + 1} of ${filtered.length}</span>
@@ -643,7 +642,7 @@ function renderEditPanel() {
   const names = Object.keys(pinEdits);
   panel.innerHTML = `
     <strong>Edit mode</strong>
-    Drag any pin to its correct spot. Click a pin to see its address. Switch to Satellite in the map corner to see buildings.
+    Drag any pin to its correct spot. Switch to Satellite in the map corner to see buildings.
     <div style="margin-top:8px"><span class="moved-count">${names.length}</span> pin${names.length === 1 ? '' : 's'} moved</div>
     ${names.length ? `<ul>${names.map(n => `<li>${n}</li>`).join('')}</ul>` : ''}
     <button class="btn-primary" id="downloadCsv" ${names.length ? '' : 'disabled'}>Download updated CSV</button>
