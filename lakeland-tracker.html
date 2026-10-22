@@ -340,10 +340,12 @@ const STATUS_COLORS = {
   completed:    '#1FA9E1',  // bright sky blue
   construction: '#F5B700',  // gold
   development:  '#8E3FB0',  // purple
-  proposed:     '#E5197E'   // magenta
+  proposed:     '#E5197E',  // magenta
+  opportunity:  '#2BB673'   // green
 };
 function statusStage(status) {
   const t = String(status || '').toLowerCase();
+  if (t.includes('opportunit')) return 'opportunity';
   if (t.includes('vision') || t.includes('propos')) return 'proposed';
   if (t.includes('design') || t.includes('develop')) return 'development';
   if (t.includes('construction')) return 'construction';
@@ -354,6 +356,7 @@ function statusColor(status) { return STATUS_COLORS[statusStage(status)] || '#55
 
 // Status names shown on the site (older names in the data still work).
 const STATUS_LABELS = {
+  opportunity: 'Development Opportunity',
   proposed: 'Vision Plans', development: 'In Design',
   construction: 'Under Construction', completed: 'Completed Since COVID'
 };
@@ -451,7 +454,7 @@ function init(data) {
 
   // Status filters in real-life order: Proposed > In Development > Under Construction > Completed.
   const STAGE = s => { const t = String(s).toLowerCase();
-    return t.includes('propos') || t.includes('vision') ? 0 : t.includes('develop') || t.includes('design') ? 1 : t.includes('construction') ? 2 : t.includes('complet') ? 3 : 4; };
+    return t.includes('opportunit') ? -1 : t.includes('propos') || t.includes('vision') ? 0 : t.includes('develop') || t.includes('design') ? 1 : t.includes('construction') ? 2 : t.includes('complet') ? 3 : 4; };
   const statuses = [...new Set(data.map(p => p.status))].sort((a, b) => STAGE(a) - STAGE(b));
   const types = [...new Set(data.map(p => p.type))].sort((a, b) => a.localeCompare(b));
   statuses.forEach(s => activeStatus.add(s));
