@@ -207,6 +207,17 @@
   .popup-link { font-size: 0.8rem; color: var(--ledc-teal-dark); font-weight: 600; text-decoration: none; }
   .popup-contact { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 0.8rem; color: #555; line-height: 1.5; }
   .popup-contact a { color: var(--ledc-teal-dark); font-weight: 600; text-decoration: none; white-space: nowrap; }
+  /* Development-opportunity key facts (bullets). Only rendered for opportunity rows. */
+  .popup-facts { list-style: none; margin: 0 0 6px; padding: 0; font-size: 0.78rem; line-height: 1.4; color: #333; }
+  .popup-facts li { position: relative; padding-left: 13px; margin-bottom: 3px; }
+  .popup-facts li::before { content: ''; position: absolute; left: 1px; top: 0.5em; width: 6px; height: 6px;
+    border-radius: 50%; background: #01949A; }
+  .popup-facts strong { color: #004369; }
+  .popup-more { margin: 0 0 8px; }
+  .popup-more summary { cursor: pointer; font-size: 0.78rem; font-weight: 600; color: #01949A; margin-bottom: 4px; }
+  .popup-sources { font-size: 0.72rem; line-height: 1.5; color: #666; margin: 4px 0 2px; }
+  .popup-sources a { color: #01949A; font-weight: 600; text-decoration: none; }
+  .popup-sources a:hover { text-decoration: underline; }
 
   .empty-note {
     padding: 40px 16px;
@@ -355,6 +366,48 @@ function statusStage(status) {
   return null;
 }
 function statusColor(status) { return STATUS_COLORS[statusStage(status)] || '#555'; }
+
+// Short key-fact columns shown as bullets on Development Opportunity popups.
+// Blank cells are skipped. Facts marked 'more' sit behind a "More site details" toggle.
+// To show a new fact, add a column to the CSV and a line here.
+const FACT_FIELDS = [
+  ['fact_zoning', 'Zoning'], ['fact_site', 'Site'], ['fact_height', 'Max height'],
+  ['fact_units', 'By-right units'], ['fact_building_sf', 'Building area'], ['fact_parking', 'Parking'],
+  ['fact_water_sewer', 'Water & sewer'], ['fact_electric_fiber', 'Electric & fiber'],
+  ['fact_uses', 'Allowed by right', 'more'], ['fact_ground_floor', 'Ground floor', 'more'],
+  ['fact_setbacks', 'Setbacks & coverage', 'more'], ['fact_open_space', 'Open space', 'more'],
+  ['fact_approvals', 'Approvals', 'more'], ['fact_live_local', 'Live Local option', 'more'],
+  ['fact_incentives', 'Incentives', 'more']
+];
+function hasValue(v) { return v != null && String(v).trim() && !/^(n\/?a|-+)$/i.test(String(v).trim()); }
+// Escape text for HTML.
+function esc(v) {
+  return String(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+// fact_sources cell: "Label|URL;Label|URL". Only http(s) links are kept.
+function sourceLinks(cell) {
+  if (!hasValue(cell)) return '';
+  const links = String(cell).split(';').map(part => {
+    const i = part.indexOf('|');
+    if (i < 1) return '';
+    const label = part.slice(0, i).trim(), raw = part.slice(i + 1).trim();
+    let url;
+    try { url = new URL(raw); } catch (e) { return ''; }
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return '';
+    return `<a href="${esc(url.href)}" target="_blank" rel="noopener">${esc(label)}</a>`;
+  }).filter(Boolean);
+  return links.length ? `<div class="popup-sources">Sources: ${links.join(' &middot; ')}</div>` : '';
+}
+function factList(p) {
+  if (statusStage(p.status) !== 'opportunity' || !p.facts) return '';
+  const li = items => items.map(([k, v]) => `<li><strong>${k}:</strong> ${String(v).trim()}</li>`).join('');
+  const items = p.facts.filter(([, v]) => hasValue(v));
+  const main = items.filter(f => !f[2]), more = items.filter(f => f[2]);
+  if (!items.length) return '';
+  const srcs = sourceLinks(p.factSources);
+  return (main.length ? `<ul class="popup-facts">${li(main)}</ul>` : '')
+    + (more.length || srcs ? `<details class="popup-more"><summary>More site details</summary>${more.length ? `<ul class="popup-facts">${li(more)}</ul>` : ''}${srcs}</details>` : '');
+}
 
 // Status names shown on the site (older names in the data still work).
 const STATUS_LABELS = {
@@ -513,6 +566,14 @@ function init(data) {
     stepProject(Number(btn.dataset.step));
   });
 
+  // Opening "More site details" can push a popup's top out of view; nudge the map so it stays visible.
+  document.getElementById('map').addEventListener('toggle', e => {
+    const box = e.target.closest && e.target.closest('.leaflet-popup');
+    if (!box) return;
+    const over = document.getElementById('map').getBoundingClientRect().top + 10 - box.getBoundingClientRect().top;
+    if (over > 0) map.panBy([0, -over]);
+  }, true);
+
   document.getElementById('resetLink').addEventListener('click', () => {
     activeStatus.clear(); statuses.forEach(s => activeStatus.add(s));
     activeType.clear(); types.forEach(t => activeType.add(t));
@@ -582,6 +643,7 @@ function render() {
       <div class="popup-kind">${p.type}</div>
       <div class="popup-title">${p.name}</div>
       <div class="popup-desc">${p.description}</div>
+      ${factList(p)}
       <div class="popup-meta">
         ${metaLines(p)}
       </div>
@@ -595,7 +657,9 @@ function render() {
     `, p.photo ? (() => {
       // Wider card when there's a photo; stays within small phone screens.
       const w = Math.min(380, window.innerWidth - 80);
-      return { minWidth: w, maxWidth: w };
+      // Opportunity cards with fact bullets are long, so they scroll inside the map.
+      return factList(p) ? { minWidth: w, maxWidth: w, maxHeight: Math.max(320, map.getSize().y - 60) }
+                         : { minWidth: w, maxWidth: w };
     })() : {});
     marker.on('popupopen', () => { currentIndex = i; });
     visibleMarkers.push(marker);
@@ -606,12 +670,15 @@ function render() {
 
 // Popup detail lines; blank or "NA" cells are left out.
 function metaLines(p) {
+  // When an opportunity shows fact bullets, units and size are already in the bullets.
+  const inBullets = factList(p) ? ['Units', 'Size'] : [];
   const fields = [
     ['Developer', p.developer], ['Construction', p.construction],
     ['Investment', p.investment], ['Units', p.units], ['Jobs', p.jobs], ['Size', p.sqft],
     ['Owner', p.owner], ['Ownership', p.ownership], ['Current Use', p.currentUse]
   ];
   return fields
+    .filter(([k]) => !inBullets.includes(k))
     .filter(([k, v]) => v && String(v).trim() && !/^(n\/?a|-+)$/i.test(String(v).trim())
       && !((k === 'Units' || k === 'Jobs') && /^tbd$/i.test(String(v).trim())))
     .map(([k, v]) => `<strong>${k}:</strong> ${String(v).trim()}`)
@@ -683,7 +750,8 @@ if (SHEET_CSV_URL) {
           name: r.name, address: r.address, lat: parseFloat(r.lat), lng: parseFloat(r.lng),
           status: normalizeStatus(r.status), type: normalizeType(r.type), description: r.description, developer: r.developer,
           construction: r.construction, investment: r.investment, units: r.units, jobs: r.jobs, sqft: r.sqft, source: r.source, photo: r.photo,
-          owner: r.owner, ownership: r.ownership, currentUse: r.current_use
+          owner: r.owner, ownership: r.ownership, currentUse: r.current_use,
+          facts: FACT_FIELDS.map(([col, label, more]) => [label, r[col], more]), factSources: r.fact_sources
         }));
       init(rows);
     },
