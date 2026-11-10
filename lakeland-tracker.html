@@ -497,19 +497,19 @@ function factList(p) {
 
 function lotGallery(p) {
   const lot = p.lotPhotos || [];
-  if (!lot.length) return '';
-  // One gallery, one photo at a time: concept rendering first, then the lot today.
+  if (!p.photo && !lot.length) return '';
+  // Every pin uses the same gallery, one photo at a time: main photo (concept rendering on lots) first, then the lot today.
   const photos = (p.photo ? [p.photo] : []).concat(lot);
-  const captions = (p.photo ? ['Concept rendering'] : []).concat(lot.map(() => 'The lot today'));
+  const captions = (p.photo ? [lot.length ? 'Concept rendering' : ''] : []).concat(lot.map(() => 'The lot today'));
   const many = photos.length > 1;
   return `<div class="lot-gallery" data-photos="${photos.map(esc).join('|')}" data-captions="${captions.join('|')}" data-index="0">
     <div class="lot-gallery-stage">
-      <img src="${esc(photos[0])}" alt="${captions[0]}" data-lot-full>
+      <img src="${esc(photos[0])}" alt="${captions[0] || esc(p.name)}" data-lot-full onerror="if(!this.closest('.lot-gallery').querySelector('.lot-gallery-btn'))this.closest('.lot-gallery').style.display='none'">
       ${many ? `<button type="button" class="lot-gallery-btn prev" data-lot-step="-1" aria-label="Previous photo">&lsaquo;</button>
       <button type="button" class="lot-gallery-btn next" data-lot-step="1" aria-label="Next photo">&rsaquo;</button>
       <span class="lot-gallery-count">1 / ${photos.length}</span>` : ''}
     </div>
-    <div class="lot-gallery-caption">${captions[0]}</div>
+    ${captions.some(Boolean) ? `<div class="lot-gallery-caption">${captions[0]}</div>` : ''}
   </div>`;
 }
 function showLotPhoto(gallery, i) {
@@ -807,7 +807,7 @@ function render() {
     }
     const photoTag = p.photo ? `<img class="popup-photo" src="${esc(p.photo)}" alt="${esc(p.name)}" onerror="this.style.display='none'">` : '';
     const hasLotPhotos = p.lotPhotos && p.lotPhotos.length;
-    const rendering = hasLotPhotos ? '' : photoTag;
+    const rendering = ''; // main photo now lives in the gallery
     marker.bindPopup(`
       ${lotGallery(p)}
       ${rendering}
