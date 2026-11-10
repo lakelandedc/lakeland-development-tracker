@@ -360,8 +360,8 @@ function statusStage(status) {
   const t = String(status || '').toLowerCase();
   if (t.includes('opportunit')) return 'opportunity';
   if (t.includes('vision') || t.includes('propos')) return 'proposed';
-  if (t.includes('design') || t.includes('develop') || t.includes('review') || t.includes('coming soon')) return 'development';
-  if (t.includes('construction') || t.includes('permitted') || t.includes('underway')) return 'construction';
+  if (t.includes('design') || t.includes('develop')) return 'development';
+  if (t.includes('construction')) return 'construction';
   if (t.includes('complet')) return 'completed';
   return null;
 }
@@ -410,7 +410,6 @@ function factList(p) {
 }
 
 // Status names shown on the site (older names in the data still work).
-// Pins and filters use these five stages; the popup badge shows the exact status text from the CSV.
 const STATUS_LABELS = {
   opportunity: 'Development Opportunity',
   proposed: 'Vision Plans', development: 'In Design',
@@ -640,7 +639,7 @@ function render() {
     const photoTag = p.photo ? `<img class="popup-photo" src="${p.photo}" alt="${p.name}" onerror="this.style.display='none'">` : '';
     marker.bindPopup(`
       ${photoTag}
-      <div class="popup-type-tag" style="background:${color};color:${badgeText(color)}">${p.statusDetail || p.status}</div>
+      <div class="popup-type-tag" style="background:${color};color:${badgeText(color)}">${p.status}</div>
       <div class="popup-kind">${p.type}</div>
       <div class="popup-title">${p.name}</div>
       <div class="popup-desc">${p.description}</div>
@@ -749,7 +748,7 @@ if (SHEET_CSV_URL) {
         .filter(r => r.name && r.lat && r.lng)
         .map(r => ({
           name: r.name, address: r.address, lat: parseFloat(r.lat), lng: parseFloat(r.lng),
-          status: normalizeStatus(r.status), statusDetail: String(r.status || '').trim(), type: normalizeType(r.type), description: r.description, developer: r.developer,
+          status: normalizeStatus(r.status), type: normalizeType(r.type), description: r.description, developer: r.developer,
           construction: r.construction, investment: r.investment, units: r.units, jobs: r.jobs, sqft: r.sqft, source: r.source, photo: r.photo,
           owner: r.owner, ownership: r.ownership, currentUse: r.current_use,
           facts: FACT_FIELDS.map(([col, label, more]) => [label, r[col], more]), factSources: r.fact_sources
