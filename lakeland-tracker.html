@@ -496,18 +496,20 @@ function factList(p) {
 
 
 function lotGallery(p) {
-  const photos = p.lotPhotos || [];
-  if (!photos.length) return '';
-  const first = photos[0];
+  const lot = p.lotPhotos || [];
+  if (!lot.length) return '';
+  // One gallery, one photo at a time: concept rendering first, then the lot today.
+  const photos = (p.photo ? [p.photo] : []).concat(lot);
+  const captions = (p.photo ? ['Concept rendering'] : []).concat(lot.map(() => 'The lot today'));
   const many = photos.length > 1;
-  return `<div class="lot-gallery" data-photos="${photos.map(esc).join('|')}" data-index="0">
+  return `<div class="lot-gallery" data-photos="${photos.map(esc).join('|')}" data-captions="${captions.join('|')}" data-index="0">
     <div class="lot-gallery-stage">
-      <img src="${esc(first)}" alt="The lot today" data-lot-full>
+      <img src="${esc(photos[0])}" alt="${captions[0]}" data-lot-full>
       ${many ? `<button type="button" class="lot-gallery-btn prev" data-lot-step="-1" aria-label="Previous photo">&lsaquo;</button>
       <button type="button" class="lot-gallery-btn next" data-lot-step="1" aria-label="Next photo">&rsaquo;</button>
       <span class="lot-gallery-count">1 / ${photos.length}</span>` : ''}
     </div>
-    <div class="lot-gallery-caption">The lot today</div>
+    <div class="lot-gallery-caption">${captions[0]}</div>
   </div>`;
 }
 function showLotPhoto(gallery, i) {
@@ -517,7 +519,11 @@ function showLotPhoto(gallery, i) {
   const idx = ((i % n) + n) % n;
   gallery.dataset.index = String(idx);
   const img = gallery.querySelector('img');
-  if (img) { img.src = photos[idx]; img.alt = `The lot today (${idx + 1} of ${n})`; }
+  const caps = String(gallery.dataset.captions || '').split('|');
+  const cap = caps[idx] || 'The lot today';
+  if (img) { img.src = photos[idx]; img.alt = `${cap} (${idx + 1} of ${n})`; }
+  const capEl = gallery.querySelector('.lot-gallery-caption');
+  if (capEl) capEl.textContent = cap;
   const count = gallery.querySelector('.lot-gallery-count');
   if (count) count.textContent = `${idx + 1} / ${n}`;
 }
@@ -801,7 +807,7 @@ function render() {
     }
     const photoTag = p.photo ? `<img class="popup-photo" src="${esc(p.photo)}" alt="${esc(p.name)}" onerror="this.style.display='none'">` : '';
     const hasLotPhotos = p.lotPhotos && p.lotPhotos.length;
-    const rendering = photoTag && hasLotPhotos ? `${photoTag}<div class="popup-photo-caption">Concept rendering</div>` : photoTag;
+    const rendering = hasLotPhotos ? '' : photoTag;
     marker.bindPopup(`
       ${lotGallery(p)}
       ${rendering}
