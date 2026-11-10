@@ -500,7 +500,7 @@ function lotGallery(p) {
   if (!p.photo && !lot.length) return '';
   // Every pin uses the same gallery, one photo at a time: main photo (concept rendering on lots) first, then the lot today.
   const photos = (p.photo ? [p.photo] : []).concat(lot);
-  const captions = (p.photo ? [lot.length ? 'Concept rendering' : ''] : []).concat(lot.map(s => /polk-pa/i.test(s) ? 'Parcel map (Polk Property Appraiser)' : 'The lot today'));
+  const captions = (p.photo ? [lot.length ? 'Concept rendering' : ''] : []).concat(lot.map(s => /catapult-polk-pa/i.test(s) ? 'Parcel map (Polk Property Appraiser). The site includes both parcels, 009022 and 009021.' : /terrace-polk-pa/i.test(s) ? 'Parcel map (Polk Property Appraiser). The site includes both parcels, 017021 and 017040.' : /polk-pa/i.test(s) ? 'Parcel map (Polk Property Appraiser)' : 'The lot today'));
   const many = photos.length > 1;
   return `<div class="lot-gallery" data-photos="${photos.map(esc).join('|')}" data-captions="${captions.join('|')}" data-index="0">
     <div class="lot-gallery-stage">
