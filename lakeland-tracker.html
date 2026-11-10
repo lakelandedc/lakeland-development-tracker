@@ -219,6 +219,88 @@
   .popup-sources a { color: #01949A; font-weight: 600; text-decoration: none; }
   .popup-sources a:hover { text-decoration: underline; }
 
+
+  .lot-gallery { margin-bottom: 8px; }
+  .lot-gallery-stage {
+    position: relative;
+    width: 100%;
+    height: 210px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #eee;
+    touch-action: pan-y;
+  }
+  .lot-gallery-stage img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    cursor: zoom-in;
+  }
+  .lot-gallery-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0, 67, 105, 0.85);
+    color: #fff;
+    font: 700 18px/28px 'Public Sans', sans-serif;
+    padding: 0;
+    cursor: pointer;
+    z-index: 2;
+  }
+  .lot-gallery-btn:hover { background: #01949A; }
+  .lot-gallery-btn.prev { left: 6px; }
+  .lot-gallery-btn.next { right: 6px; }
+  .lot-gallery-count {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    background: rgba(0, 67, 105, 0.85);
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 100px;
+  }
+  .lot-gallery-caption, .popup-photo-caption {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #004369;
+    margin: 4px 0 8px;
+  }
+  .popup-photo-caption { margin-top: -4px; }
+  .lot-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(0, 24, 38, 0.88);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    cursor: zoom-out;
+  }
+  .lot-lightbox[hidden] { display: none; }
+  .lot-lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; cursor: default; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+  .lot-lightbox-close {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0, 67, 105, 0.9);
+    color: #fff;
+    font: 700 22px/36px 'Public Sans', sans-serif;
+    cursor: pointer;
+  }
+  .lot-lightbox-close:hover { background: #01949A; }
+
   .empty-note {
     padding: 40px 16px;
     text-align: center;
@@ -260,6 +342,7 @@
     .body { flex-direction: column; }
     .sidebar { width: 100%; max-height: 220px; border-right: none; border-bottom: 1px solid var(--line); }
     header .tagline { display: none; }
+    .lot-gallery-stage { height: 160px; }
   }
 </style>
 </head>
@@ -318,7 +401,9 @@
 
 // Set this to your published Google Sheet CSV URL to go live.
 // Example: "https://docs.google.com/spreadsheets/d/e/PUBLISHED_ID/pub?output=csv"
-const SHEET_CSV_URL = "https://raw.githubusercontent.com/lakelandedc/lakeland-development-tracker/main/lakeland-projects.csv";
+const SHEET_CSV_URL = (location.hostname === "localhost" || location.hostname === "127.0.0.1")
+  ? "lakeland-projects.csv"
+  : "https://raw.githubusercontent.com/lakelandedc/lakeland-development-tracker/main/lakeland-projects.csv";
 
 const SAMPLE_DATA = [
   {name:"Bonnet Springs Park North Gateway", address:"1000 E Main St, Lakeland, FL", lat:28.0468, lng:-81.9418, status:"Completed", type:"Parks & Recreation", description:"Trailhead and welcome plaza addition connecting downtown to Bonnet Springs Park.", developer:"City of Lakeland", construction:"New", investment:"$4.2M", units:"—", source:"", photo:""},
@@ -407,6 +492,77 @@ function factList(p) {
   const srcs = sourceLinks(p.factSources);
   return (main.length ? `<ul class="popup-facts">${li(main)}</ul>` : '')
     + (more.length || srcs ? `<details class="popup-more"><summary>More site details</summary>${more.length ? `<ul class="popup-facts">${li(more)}</ul>` : ''}${srcs}</details>` : '');
+}
+
+
+function lotGallery(p) {
+  const photos = p.lotPhotos || [];
+  if (!photos.length) return '';
+  const first = photos[0];
+  const many = photos.length > 1;
+  return `<div class="lot-gallery" data-photos="${photos.map(esc).join('|')}" data-index="0">
+    <div class="lot-gallery-stage">
+      <img src="${esc(first)}" alt="The lot today" data-lot-full>
+      ${many ? `<button type="button" class="lot-gallery-btn prev" data-lot-step="-1" aria-label="Previous photo">&lsaquo;</button>
+      <button type="button" class="lot-gallery-btn next" data-lot-step="1" aria-label="Next photo">&rsaquo;</button>
+      <span class="lot-gallery-count">1 / ${photos.length}</span>` : ''}
+    </div>
+    <div class="lot-gallery-caption">The lot today</div>
+  </div>`;
+}
+function showLotPhoto(gallery, i) {
+  const photos = String(gallery.dataset.photos || '').split('|').filter(Boolean);
+  if (!photos.length) return;
+  const n = photos.length;
+  const idx = ((i % n) + n) % n;
+  gallery.dataset.index = String(idx);
+  const img = gallery.querySelector('img');
+  if (img) { img.src = photos[idx]; img.alt = `The lot today (${idx + 1} of ${n})`; }
+  const count = gallery.querySelector('.lot-gallery-count');
+  if (count) count.textContent = `${idx + 1} / ${n}`;
+}
+function openLotLightbox(src) {
+  let box = document.getElementById('lotLightbox');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'lotLightbox';
+    box.className = 'lot-lightbox';
+    box.hidden = true;
+    box.innerHTML = '<button type="button" class="lot-lightbox-close" aria-label="Close">&times;</button><img alt="The lot today">';
+    document.body.appendChild(box);
+    const close = () => { box.hidden = true; };
+    box.addEventListener('click', e => { if (e.target !== box.querySelector('img')) close(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !box.hidden) close(); });
+  }
+  box.querySelector('img').src = src;
+  box.hidden = false;
+}
+function bindLotGallery(root) {
+  root.querySelectorAll('.lot-gallery').forEach(gal => {
+    const stage = gal.querySelector('.lot-gallery-stage');
+    if (!stage || stage.dataset.bound) return;
+    stage.dataset.bound = '1';
+    let startX = null, startY = null, swiped = false;
+    stage.addEventListener('touchstart', e => {
+      const t = e.changedTouches[0];
+      startX = t.clientX; startY = t.clientY; swiped = false;
+    }, { passive: true });
+    stage.addEventListener('touchend', e => {
+      if (startX == null) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - startX, dy = t.clientY - startY;
+      startX = null;
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+        swiped = true;
+        showLotPhoto(gal, Number(gal.dataset.index || 0) + (dx < 0 ? 1 : -1));
+      }
+    });
+    const img = stage.querySelector('img');
+    if (img) img.addEventListener('click', e => {
+      if (swiped) { e.preventDefault(); swiped = false; return; }
+      openLotLightbox(e.currentTarget.src);
+    });
+  });
 }
 
 // Status names shown on the site (older names in the data still work).
@@ -560,6 +716,13 @@ function init(data) {
 
   // Previous / Next buttons inside the popup.
   document.getElementById('map').addEventListener('click', e => {
+    const lotBtn = e.target.closest('[data-lot-step]');
+    if (lotBtn) {
+      e.preventDefault();
+      const gal = lotBtn.closest('.lot-gallery');
+      if (gal) showLotPhoto(gal, Number(gal.dataset.index || 0) + Number(lotBtn.dataset.lotStep));
+      return;
+    }
     const btn = e.target.closest('[data-step]');
     if (!btn) return;
     e.preventDefault();
@@ -636,9 +799,12 @@ function render() {
         const c = marker.getPopup() && marker.getPopup().getElement();
       });
     }
-    const photoTag = p.photo ? `<img class="popup-photo" src="${p.photo}" alt="${p.name}" onerror="this.style.display='none'">` : '';
+    const photoTag = p.photo ? `<img class="popup-photo" src="${esc(p.photo)}" alt="${esc(p.name)}" onerror="this.style.display='none'">` : '';
+    const hasLotPhotos = p.lotPhotos && p.lotPhotos.length;
+    const rendering = photoTag && hasLotPhotos ? `${photoTag}<div class="popup-photo-caption">Concept rendering</div>` : photoTag;
     marker.bindPopup(`
-      ${photoTag}
+      ${lotGallery(p)}
+      ${rendering}
       <div class="popup-type-tag" style="background:${color};color:${badgeText(color)}">${p.status}</div>
       <div class="popup-kind">${p.type}</div>
       <div class="popup-title">${p.name}</div>
@@ -661,7 +827,7 @@ function render() {
       return factList(p) ? { minWidth: w, maxWidth: w, maxHeight: Math.max(320, map.getSize().y - 60) }
                          : { minWidth: w, maxWidth: w };
     })() : {});
-    marker.on('popupopen', () => { currentIndex = i; });
+    marker.on('popupopen', e => { currentIndex = i; bindLotGallery(e.popup.getElement()); });
     visibleMarkers.push(marker);
   });
 
@@ -751,7 +917,8 @@ if (SHEET_CSV_URL) {
           status: normalizeStatus(r.status), type: normalizeType(r.type), description: r.description, developer: r.developer,
           construction: r.construction, investment: r.investment, units: r.units, jobs: r.jobs, sqft: r.sqft, source: r.source, photo: r.photo,
           owner: r.owner, ownership: r.ownership, currentUse: r.current_use,
-          facts: FACT_FIELDS.map(([col, label, more]) => [label, r[col], more]), factSources: r.fact_sources
+          facts: FACT_FIELDS.map(([col, label, more]) => [label, r[col], more]), factSources: r.fact_sources,
+          lotPhotos: String(r.lot_photos || '').split('|').map(s => s.trim()).filter(Boolean)
         }));
       init(rows);
     },
