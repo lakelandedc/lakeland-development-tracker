@@ -799,8 +799,22 @@ function render() {
 
   markersLayer.clearLayers();
 
-  // Order used by Previous / Next: west to east across the map.
-  filtered.sort((a, b) => a.lng - b.lng || b.lat - a.lat);
+  // Order used by Previous / Next: a walking tour. Start at the westernmost project,
+  // then always step to the closest project not yet visited.
+  {
+    const remaining = filtered.slice();
+    const tour = [];
+    const kmX = Math.cos(28.04 * Math.PI / 180);
+    const dist = (a, b) => Math.hypot((a.lng - b.lng) * kmX, a.lat - b.lat);
+    let current = remaining.reduce((w, p) => (p.lng < w.lng ? p : w), remaining[0]);
+    while (current) {
+      tour.push(current);
+      remaining.splice(remaining.indexOf(current), 1);
+      current = remaining.reduce((best, p) => (!best || dist(current, p) < dist(current, best) ? p : best), null);
+    }
+    filtered.length = 0;
+    filtered.push(...tour);
+  }
   visibleMarkers = [];
 
   filtered.forEach((p, i) => {
