@@ -624,6 +624,14 @@ function stepProject(step) {
   m.openPopup();
 }
 let map, markersLayer;
+let openPopup = null;
+function refitPopup(popup, pan) {
+  if (!popup || !popup.options.maxHeight || !popup._contentNode) return;
+  popup.options.maxHeight = Math.max(320, map.getSize().y - 60);
+  popup._updateLayout();
+  popup._updatePosition();
+  if (pan) popup._adjustPan();
+}
 const activeStatus = new Set();
 const activeType = new Set();
 let searchTerm = "";
@@ -702,6 +710,10 @@ function init(data) {
   map.on('zoomanim', e => setPinScale(e.zoom));
   map.on('zoom', () => setPinScale(map.getZoom()));
   setPinScale(map.getZoom());
+  // Long cards scroll inside the map. Re-measure each time a card opens (or "More site details" opens/closes)
+  // against the map's current height, so a card that was borderline never ends up cut off with no scroll.
+  map.on('popupopen', e => { openPopup = e.popup; refitPopup(e.popup, true); });
+  map.on('popupclose', () => { openPopup = null; });
   // Satellite by default, with faint street and place labels on top. Street map is a toggle.
   const esri = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
   const satellite = L.layerGroup([
@@ -758,6 +770,7 @@ function init(data) {
   document.getElementById('map').addEventListener('toggle', e => {
     const box = e.target.closest && e.target.closest('.leaflet-popup');
     if (!box) return;
+    refitPopup(openPopup, false);
     const over = document.getElementById('map').getBoundingClientRect().top + 10 - box.getBoundingClientRect().top;
     if (over > 0) map.panBy([0, -over]);
   }, true);
